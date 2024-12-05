@@ -1,0 +1,5 @@
+{
+    "sketch": "src\\src.ino",
+    "configuration": "protocol_stack=matter",
+    "board": "SiliconLabs:silabs:nano_matter"
+}
