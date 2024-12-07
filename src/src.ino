@@ -7,6 +7,7 @@
 // #define DEBUG 1
 #define DEBUG_MATTER 1
 // #define BUTTONS 1
+// #define SMART_FAN_POLLING 1
 
 #include <stdint.h>
 #include <Matter.h>
@@ -20,6 +21,9 @@ enum class FanSpeed
     Medium,
     High
 };
+
+/// @brief Interval in milliseconds at which the matter fan is polled.
+const unsigned long kPollingInterval = 100UL;
 
 /// @brief Pin the low speed relay is connected to.
 const uint8_t kLowSpeedPin = D0;
@@ -46,10 +50,18 @@ const uint8_t kMediumButtonPin = A2;
 const uint8_t kHighButtonPin = A3;
 #endif
 
+volatile uint8_t fan_last_percent = 0;
+volatile FanSpeed fan_last_speed = FanSpeed::Low;
+volatile bool fan_last_state = false;
+
 MatterFan matter_fan;
 
 void setup()
 {
+  #if BUTTONS
+  noInterrupts();
+  #endif
+  
   // Pin setup
 
   pinMode(kLowSpeedPin, OUTPUT);
@@ -61,6 +73,11 @@ void setup()
   pinMode(kLowButtonPin, INPUT_PULLUP);
   pinMode(kMediumButtonPin, INPUT_PULLUP);
   pinMode(kHighButtonPin, INPUT_PULLUP);
+
+  attachInterrupt(digitalPinToInterrupt(kOffButtonPin), offInterrupt, FALLING);
+  attachInterrupt(digitalPinToInterrupt(kLowButtonPin), lowSpeedInterrupt, FALLING);
+  attachInterrupt(digitalPinToInterrupt(kMediumButtonPin), mediumSpeedInterrupt, FALLING);
+  attachInterrupt(digitalPinToInterrupt(kHighButtonPin), highSpeedInterrupt, FALLING);
   #endif
 
   // Matter setup
@@ -71,16 +88,14 @@ void setup()
 
   #if DEBUG | DEBUG_MATTER
   Serial.println("Matter fan");
-  #endif
 
   if (!Matter.isDeviceCommissioned()) {
-    #if DEBUG | DEBUG_MATTER
     Serial.println("Matter device is not commissioned");
     Serial.println("Commission it to your Matter hub with the manual pairing code or QR code");
     Serial.printf("Manual pairing code: %s\n", Matter.getManualPairingCode().c_str());
     Serial.printf("QR code URL: %s\n", Matter.getOnboardingQRCodeUrl().c_str());
-    #endif
   }
+  #endif
   while (!Matter.isDeviceCommissioned()) {
     delay(200);
   }
@@ -93,9 +108,7 @@ void setup()
   }
   #if DEBUG | DEBUG_MATTER
   Serial.println("Connected to Thread network");
-  #endif
 
-  #if DEBUG | DEBUG_MATTER
   Serial.println("Waiting for Matter device discovery...");
   #endif
   while (!matter_fan.is_online()) {
@@ -104,125 +117,61 @@ void setup()
   #if DEBUG | DEBUG_MATTER
   Serial.println("Matter device is now online");
   #endif
+
+  #if BUTTONS
+  interrupts();
+  #endif
 }
 
 void loop()
 {
-  static uint8_t fan_last_percent = 0;
-  static FanSpeed fan_last_speed = FanSpeed::Low;
-  uint8_t fan_current_percent = matter_fan.get_percent();
-
-  if (fan_current_percent != fan_last_percent) {
-    fan_last_percent = fan_current_percent;
-    fan_last_speed = percentToFanSpeed(fan_last_percent);
-    setFanSpeed(fan_last_speed);
-    #if DEBUG
-    Serial.print("Fan speed: ");
-    Serial.print(fan_current_percent);
-    Serial.println("%");
-    #endif
-  }
-
-  static bool fan_last_state = false;
-  bool fan_current_state = matter_fan.get_onoff();
-
-  if (fan_current_state != fan_last_state) {
-    fan_last_state = fan_current_state;
-    if (fan_current_state) {
-      setFanSpeed(fan_last_speed);
-      #if DEBUG
-      Serial.println("Fan ON");
-      #endif
-    } else {
-      setFanSpeed(FanSpeed::Off);
-      #if DEBUG
-      Serial.println("Fan OFF");
-      #endif
-    }
-  }
-
-  #if BUTTONS
-  if (digitalRead(kOffButtonPin) == LOW) {
-    if (fan_current_state)
-    {
-      matter_fan.set_onoff(false);
-      fan_last_state = false;
-      setFanSpeed(FanSpeed::Off);
-      #if DEBUG
-      Serial.println("Fan OFF");
-      #endif
-    }
-  } else if (digitalRead(kLowButtonPin) == LOW) {
-    // If we're changing speed OR turning on
-    if (fan_last_percent != kLowSpeed || !fan_last_state)
-    {
-      // Set speed to Low and percent to kLowSpeed
-      fan_last_speed = FanSpeed::Low;
-      fan_last_percent = kLowSpeed;
-      
-      matter_fan.set_percent(fan_last_percent);
-      if (!fan_last_state) {
-        matter_fan.set_onoff(true);
-        fan_last_state = true;
-        #if DEBUG
-        Serial.println("Fan ON");
-        #endif
-      }
-      setFanSpeed(fan_last_speed);
-      #if DEBUG
-      Serial.print("Fan speed: ");
-      Serial.print(fan_current_percent);
-      Serial.println("%");
-      #endif
-    }
-  } else if (digitalRead(kMediumButtonPin) == LOW) {
-    // If we're changing speed OR turning on
-    if (fan_last_percent != kMediumSpeed || !fan_last_state)
-    {
-      // Set speed to Medium and percent to kMediumSpeed
-      fan_last_speed = FanSpeed::Medium;
-      fan_last_percent = kMediumSpeed;
-      
-      matter_fan.set_percent(fan_last_percent);
-      if (!fan_last_state) {
-        matter_fan.set_onoff(true);
-        fan_last_state = true;
-        #if DEBUG
-        Serial.println("Fan ON");
-        #endif
-      }
-      setFanSpeed(fan_last_speed);
-      #if DEBUG
-      Serial.print("Fan speed: ");
-      Serial.print(fan_current_percent);
-      Serial.println("%");
-      #endif
-    }
-  } else if (digitalRead(kHighButtonPin) == LOW) {
-    // If we're changing speed OR turning on
-    if (fan_last_percent != kHighSpeed || !fan_last_state)
-    {
-      // Set speed to High and percent to kHighSpeed
-      fan_last_speed = FanSpeed::High;
-      fan_last_percent = kHighSpeed;
-      
-      matter_fan.set_percent(fan_last_percent);
-      if (!fan_last_state) {
-        matter_fan.set_onoff(true);
-        fan_last_state = true;
-        #if DEBUG
-        Serial.println("Fan ON");
-        #endif
-      }
-      setFanSpeed(fan_last_speed);
-      #if DEBUG
-      Serial.print("Fan speed: ");
-      Serial.print(fan_current_percent);
-      Serial.println("%");
-      #endif
-    }
-  }
+  #if SMART_FAN_POLLING
+  static unsigned long time = 0UL;
+  if (millis() >= time + kPollingInterval) {
   #endif
+
+  updateFanSpeed();
+  updateFanState();
+
+  #if SMART_FAN_POLLING
+  }
+  time = millis();
+  #endif
+}
+
+void updateFanSpeed()
+{
+    uint8_t fan_current_percent = matter_fan.get_percent();
+    if (fan_current_percent != fan_last_percent) {
+        fan_last_percent = fan_current_percent;
+        FanSpeed fan_current_speed = percentToFanSpeed(fan_last_percent);
+        if (fan_current_speed != fan_last_speed) {
+            fan_last_speed = fan_current_speed;
+            if (matter_fan.get_onoff()) {
+                setFanSpeed(fan_last_speed);
+            }
+        }
+    }
+}
+
+void updateFanState()
+{
+    bool fan_current_state = matter_fan.get_onoff();
+
+    if (fan_current_state != fan_last_state) {
+        fan_last_state = fan_current_state;
+        if (fan_current_state) {
+        setFanSpeed(fan_last_speed);
+        #if DEBUG
+        Serial.println("Fan ON");
+        #endif
+        } else {
+        setFanSpeed(FanSpeed::Off);
+        #if DEBUG
+        Serial.println("Fan OFF");
+        #endif
+        }
+    }
 }
 
 /// @brief Converts a percentage to a FanSpeed
@@ -269,3 +218,40 @@ void setFanSpeed(FanSpeed speed)
     break;
   }
 }
+
+#if BUTTONS
+void offInterrupt()
+{
+    noInterrupts();
+    matter_fan.set_onoff(false);
+    updateFanState();
+    interrupts();
+}
+
+void lowSpeedInterrupt()
+{
+    noInterrupts();
+    matter_fan.set_onoff(true);
+    matter_fan.set_percent(kLowSpeed);
+    updateFanSpeed();
+    interrupts();
+}
+
+void mediumSpeedInterrupt()
+{
+    noInterrupts();
+    matter_fan.set_onoff(true);
+    matter_fan.set_percent(kMediumSpeed);
+    updateFanSpeed();
+    interrupts();
+}
+
+void highSpeedInterrupt()
+{
+    noInterrupts();
+    matter_fan.set_onoff(true);
+    matter_fan.set_percent(kHighSpeed);
+    updateFanSpeed();
+    interrupts();
+}
+#endif
