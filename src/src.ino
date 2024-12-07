@@ -9,6 +9,15 @@
 // #define BUTTONS 1
 // #define SMART_FAN_POLLING 1
 
+#define RELAY_ACTIVE LOW
+#if RELAY_ACTIVE == LOW
+  #define RELAY_INACTIVE HIGH
+#elif RELAY_ACTIVE == HIGH
+  #define RELAY_INACTIVE LOW
+#else
+  #error RELAY_ACTIVE must be set to HIGH or LOW
+#endif
+
 #include <stdint.h>
 #include <Matter.h>
 #include <MatterFan.h>
@@ -199,24 +208,24 @@ void setFanSpeed(FanSpeed speed)
   switch (speed)
   {
   case FanSpeed::Low:
-    digitalWrite(kMediumSpeedPin, HIGH);
-    digitalWrite(kHighSpeedPin, HIGH);
-    digitalWrite(kLowSpeedPin, LOW);
+    digitalWrite(kMediumSpeedPin, RELAY_INACTIVE);
+    digitalWrite(kHighSpeedPin, RELAY_INACTIVE);
+    digitalWrite(kLowSpeedPin, RELAY_ACTIVE);
     break;
   case FanSpeed::Medium:
-    digitalWrite(kLowSpeedPin, HIGH);
-    digitalWrite(kHighSpeedPin, HIGH);
-    digitalWrite(kMediumSpeedPin, LOW);
+    digitalWrite(kLowSpeedPin, RELAY_INACTIVE);
+    digitalWrite(kHighSpeedPin, RELAY_INACTIVE);
+    digitalWrite(kMediumSpeedPin, RELAY_ACTIVE);
     break;
   case FanSpeed::High:
-    digitalWrite(kLowSpeedPin, HIGH);
-    digitalWrite(kMediumSpeedPin, HIGH);
-    digitalWrite(kHighSpeedPin, LOW);
+    digitalWrite(kLowSpeedPin, RELAY_INACTIVE);
+    digitalWrite(kMediumSpeedPin, RELAY_INACTIVE);
+    digitalWrite(kHighSpeedPin, RELAY_ACTIVE);
   case FanSpeed::Off:
   default:
-    digitalWrite(kLowSpeedPin, HIGH);
-    digitalWrite(kMediumSpeedPin, HIGH);
-    digitalWrite(kHighSpeedPin, HIGH);
+    digitalWrite(kLowSpeedPin, RELAY_INACTIVE);
+    digitalWrite(kMediumSpeedPin, RELAY_INACTIVE);
+    digitalWrite(kHighSpeedPin, RELAY_INACTIVE);
     break;
   }
 }
