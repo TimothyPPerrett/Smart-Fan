@@ -22,11 +22,11 @@ enum class FanSpeed
 };
 
 /// @brief Pin the low speed relay is connected to.
-const uint8_t kLowSpeedPin = D6;
+const uint8_t kLowSpeedPin = D0;
 /// @brief Pin the medium speed relay is connected to.
-const uint8_t kMediumSpeedPin = D7;
+const uint8_t kMediumSpeedPin = D1;
 /// @brief Pin the high speed relay is connected to.
-const uint8_t kHighSpeedPin = D8;
+const uint8_t kHighSpeedPin = D2;
 
 #if BUTTONS
 /// @brief Percentage to set the fan to when the low speed button is pressed.
