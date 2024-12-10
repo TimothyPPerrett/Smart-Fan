@@ -74,7 +74,16 @@ void setup()
   #endif
   
   // Pin setup
+  
+  if (RELAY_INACTIVE == HIGH) {
+    // This sets relay control pins to HIGH by default
+    // to minimize how long we spend with all the relay coils active
+    pinMode(kLowSpeedPin, INPUT_PULLUP);
+    pinMode(kMediumSpeedPin, INPUT_PULLUP);
+    pinMode(kHighSpeedPin, INPUT_PULLUP);
+  }
 
+  // Now we set them to be OUTPUTs
   pinMode(kLowSpeedPin, OUTPUT);
   pinMode(kMediumSpeedPin, OUTPUT);
   pinMode(kHighSpeedPin, OUTPUT);
