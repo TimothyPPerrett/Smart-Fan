@@ -69,10 +69,6 @@ MatterFan matter_fan;
 
 void setup()
 {
-  #if BUTTONS
-  noInterrupts();
-  #endif
-  
   // Pin setup
   
   if (RELAY_INACTIVE == HIGH) {
@@ -98,6 +94,9 @@ void setup()
   attachInterrupt(digitalPinToInterrupt(kLowButtonPin), lowSpeedInterrupt, FALLING);
   attachInterrupt(digitalPinToInterrupt(kMediumButtonPin), mediumSpeedInterrupt, FALLING);
   attachInterrupt(digitalPinToInterrupt(kHighButtonPin), highSpeedInterrupt, FALLING);
+
+  // Disable interrupts while we set up Matter
+  noInterrupts();
   #endif
 
   // Matter setup
@@ -139,6 +138,7 @@ void setup()
   #endif
 
   #if BUTTONS
+  // Re-enable interrupts now Matter is set up
   interrupts();
   #endif
 }
