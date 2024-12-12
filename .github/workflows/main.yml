@@ -1,0 +1,21 @@
+name: Compile Arduino Sketches
+
+on:
+  - push
+  - pull_request
+  - workflow_dispatch
+
+env:
+  SKETCHES_REPORTS_PATH: sketches-reports
+  SKETCHES_REPORTS_ARTIFACT_NAME: Cookie-Cats
+
+jobs:
+  compile-sketch:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: arduino/compile-sketches@v1.1.2
+        with:
+          fqbn: "SiliconLabs:silabs:thingplusmatter"
+          libraries: |
+            - name: Matter
