@@ -69,6 +69,18 @@ MatterFan matter_fan;
 
 void setup()
 {
+  // Upon powering on, VUSB and 3V3 on the board will be hot,
+  // and all of the relay controls will be LOW.
+  // This means all of the relays will energise.
+  // This will have two effects:
+  // 1. A ~280mA current draw from VUSB.
+  // 2. The fan will turn on.
+  //
+  // The latter issue could be avoided by routing the active 250VAC 
+  // wire through the NC terminal on a relay such that all the others
+  // get cut off when it energizes. If the current draw doesn't cause
+  // issues, this is probably the best course of action.
+  
   // Pin setup
   
   if (RELAY_INACTIVE == HIGH) {
@@ -85,11 +97,15 @@ void setup()
   pinMode(kHighSpeedPin, OUTPUT);
 
   #if BUTTONS
+  // INPUT_PULLUP so we can reuse the existing buttons directly
   pinMode(kOffButtonPin, INPUT_PULLUP);
   pinMode(kLowButtonPin, INPUT_PULLUP);
   pinMode(kMediumButtonPin, INPUT_PULLUP);
   pinMode(kHighButtonPin, INPUT_PULLUP);
 
+  // Mechanical fan state will only change when a setting has actually changed,
+  // so it's no problem for these to be triggered multiple times in a row, and 
+  // we don't really need debouncing.
   attachInterrupt(digitalPinToInterrupt(kOffButtonPin), offInterrupt, FALLING);
   attachInterrupt(digitalPinToInterrupt(kLowButtonPin), lowSpeedInterrupt, FALLING);
   attachInterrupt(digitalPinToInterrupt(kMediumButtonPin), mediumSpeedInterrupt, FALLING);
@@ -146,10 +162,14 @@ void setup()
 void loop()
 {
   #if SMART_FAN_POLLING
+  // Enforce polling interval.
+  // TODO: Will the underflow that happens every ~50 days break anything?
   static unsigned long time = 0UL;
   if (millis() >= time + kPollingInterval) {
   #endif
-
+  
+  // TODO: Any need to disable interrupts while we perform these updates?
+  // If so, should that be done here or in the functions themselves?
   updateFanSpeed();
   updateFanState();
 
@@ -162,11 +182,14 @@ void loop()
 void updateFanSpeed()
 {
     uint8_t fan_current_percent = matter_fan.get_percent();
+    // Act only if the value has changed...
     if (fan_current_percent != fan_last_percent) {
         fan_last_percent = fan_current_percent;
         FanSpeed fan_current_speed = percentToFanSpeed(fan_last_percent);
+        // ...AND that value means a different speed...
         if (fan_current_speed != fan_last_speed) {
             fan_last_speed = fan_current_speed;
+            // ... AND the fan is on.
             if (matter_fan.get_onoff()) {
                 setFanSpeed(fan_last_speed);
             }
