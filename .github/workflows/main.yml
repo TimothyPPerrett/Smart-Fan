@@ -1,0 +1,15 @@
+name: Compile Arduino Sketches
+
+on:
+  - push
+  - pull_request
+  - workflow_dispatch
+
+jobs:
+  compile-sketch:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: arduino/compile-sketches@v1.1.2
+        with:
+          fqbn: "SiliconLabs:silabs:thingplusmatter"
