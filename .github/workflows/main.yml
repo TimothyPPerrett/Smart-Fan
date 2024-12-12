@@ -13,3 +13,6 @@ jobs:
       - uses: arduino/compile-sketches@v1.1.2
         with:
           fqbn: "SiliconLabs:silabs:thingplusmatter"
+        
+          sketch-paths: |
+            - ./src/
