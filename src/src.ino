@@ -4,11 +4,20 @@
 
    Modified By: Timothy Perrett
  */
+
+// If defined, debug messages are printed to Serial
 // #define DEBUG 1
+
+// If defined, Matter setup debug messages are printed to Serial
 #define DEBUG_MATTER 1
+
+// If defined, button inputs and interrupts are used
 // #define BUTTONS 1
+
+// If defined, the Matter fan is polled at the specified interval
 // #define SMART_FAN_POLLING 1
 
+// Configuration option for active low/high relays.
 #define RELAY_ACTIVE LOW
 #if RELAY_ACTIVE == LOW
   #define RELAY_INACTIVE HIGH
@@ -61,10 +70,14 @@ const uint8_t kMediumButtonPin = A2;
 const uint8_t kHighButtonPin = A3;
 #endif
 
+/// @brief Percentage that matter_fan was set to last time updateFanSpeed was called.
 volatile uint8_t fan_last_percent = 0;
+/// @brief FanSpeed corresponding to fan_last_percent.
 volatile FanSpeed fan_last_speed = FanSpeed::Low;
+/// @brief On/off state of matter_fan last time updateFanState was called.
 volatile bool fan_last_state = false;
 
+/// @brief Object exposed to Matter. Tracks software state of the fan.
 MatterFan matter_fan;
 
 void setup()
@@ -179,12 +192,18 @@ void loop()
   #endif
 }
 
+/// @brief Synchronise the physical fan's speed setting with that of the Matter fan
 void updateFanSpeed()
 {
     uint8_t fan_current_percent = matter_fan.get_percent();
     // Act only if the value has changed...
     if (fan_current_percent != fan_last_percent) {
         fan_last_percent = fan_current_percent;
+        #if DEBUG
+        Serial.print("Fan percentage set: ");
+        Serial.print(fan_current_speed);
+        Serial.println("%");
+        #endif
         FanSpeed fan_current_speed = percentToFanSpeed(fan_last_percent);
         // ...AND that value means a different speed...
         if (fan_current_speed != fan_last_speed) {
@@ -197,6 +216,7 @@ void updateFanSpeed()
     }
 }
 
+/// @brief Synchronise the physical fan's on/off state with that of the Matter fan
 void updateFanState()
 {
     bool fan_current_state = matter_fan.get_onoff();
@@ -263,8 +283,15 @@ void setFanSpeed(FanSpeed speed)
 }
 
 #if BUTTONS
+// These interrupts all set the state of
+// the Matter fan, then call updateFanSpeed
+// to propagate that state to the hardware.
+
 void offInterrupt()
 {
+    #if DEBUG
+    Serial.println("Off button interrupt triggered.");
+    #endif
     noInterrupts();
     matter_fan.set_onoff(false);
     updateFanState();
@@ -273,6 +300,9 @@ void offInterrupt()
 
 void lowSpeedInterrupt()
 {
+    #if DEBUG
+    Serial.println("Off button interrupt triggered.");
+    #endif
     noInterrupts();
     matter_fan.set_onoff(true);
     matter_fan.set_percent(kLowSpeed);
@@ -282,6 +312,9 @@ void lowSpeedInterrupt()
 
 void mediumSpeedInterrupt()
 {
+    #if DEBUG
+    Serial.println("Medium speed button interrupt triggered.");
+    #endif
     noInterrupts();
     matter_fan.set_onoff(true);
     matter_fan.set_percent(kMediumSpeed);
@@ -291,6 +324,9 @@ void mediumSpeedInterrupt()
 
 void highSpeedInterrupt()
 {
+    #if DEBUG
+    Serial.println("High speed button interrupt triggered.");
+    #endif
     noInterrupts();
     matter_fan.set_onoff(true);
     matter_fan.set_percent(kHighSpeed);
