@@ -246,10 +246,11 @@ void updateFanState()
 /// @return A FanSpeed corresponding to percent, from FanSpeed::Low to FanSpeed::High
 FanSpeed percentToFanSpeed(uint8_t percent)
 {
-    if (percent <= 33) {
+    if (percent == 0) {
+        return FanSpeed::Off;
+    } else if (percent <= 33) {
         return FanSpeed::Low;
-    } else if (percent > 66)
-    {
+    } else if (percent > 66) {
         return FanSpeed::High;
     } else {
         return FanSpeed::Medium;
