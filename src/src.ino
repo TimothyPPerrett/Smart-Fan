@@ -286,6 +286,7 @@ void setFanSpeed(FanSpeed speed)
     digitalWrite(kLowSpeedPin, RELAY_INACTIVE);
     digitalWrite(kMediumSpeedPin, RELAY_INACTIVE);
     digitalWrite(kHighSpeedPin, RELAY_ACTIVE);
+    break;
   case FanSpeed::Off:
   default:
     #if DEBUG
