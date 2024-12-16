@@ -46,11 +46,11 @@ const unsigned long kPollingInterval = 100UL;
 #endif
 
 /// @brief Pin the low speed relay is connected to.
-const uint8_t kLowSpeedPin = D0;
+const uint8_t kLowSpeedPin = D6; // Marked C1 on board
 /// @brief Pin the medium speed relay is connected to.
-const uint8_t kMediumSpeedPin = D1;
+const uint8_t kMediumSpeedPin = D7; // Marked C0 on board
 /// @brief Pin the high speed relay is connected to.
-const uint8_t kHighSpeedPin = D2;
+const uint8_t kHighSpeedPin = D8; // Marked D0 on board
 
 #if BUTTONS
 /// @brief Percentage to set the fan to when the low speed button is pressed.
@@ -61,13 +61,13 @@ const uint8_t kMediumSpeed = 50;
 const uint8_t kHighSpeed = 100;
 
 /// @brief Pin the off button is connected to.
-const uint8_t kOffButtonPin = A0;
+const uint8_t kOffButtonPin = A5;
 /// @brief Pin the low speed button is connected to.
-const uint8_t kLowButtonPin = A1;
+const uint8_t kLowButtonPin = A6;
 /// @brief Pin the medium speed button is connected to.
-const uint8_t kMediumButtonPin = A2;
+const uint8_t kMediumButtonPin = A7;
 /// @brief Pin the high speed button is connected to.
-const uint8_t kHighButtonPin = A3;
+const uint8_t kHighButtonPin = A8;
 #endif
 
 /// @brief Percentage that matter_fan was set to last time updateFanSpeed was called.
