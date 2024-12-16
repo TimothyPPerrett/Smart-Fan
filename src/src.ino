@@ -54,7 +54,7 @@ const uint8_t kHighSpeedPin = D2;
 
 #if BUTTONS
 /// @brief Percentage to set the fan to when the low speed button is pressed.
-const uint8_t kLowSpeed = 0;
+const uint8_t kLowSpeed = 20;
 /// @brief Percentage to set the fan to when the medium speed button is pressed.
 const uint8_t kMediumSpeed = 50;
 /// @brief Percentage to set the fan to when the high speed button is pressed.
