@@ -6,7 +6,7 @@
  */
 
 // If defined, debug messages are printed to Serial
-// #define DEBUG 1
+#define DEBUG 1
 
 // If defined, Matter setup debug messages are printed to Serial
 #define DEBUG_MATTER 1
@@ -200,13 +200,17 @@ void updateFanSpeed()
     if (fan_current_percent != fan_last_percent) {
         fan_last_percent = fan_current_percent;
         #if DEBUG
-        Serial.print("Fan percentage set: ");
-        Serial.print(fan_current_speed);
+        Serial.print("Fan percent changed to ");
+        Serial.print(fan_current_percent);
         Serial.println("%");
         #endif
         FanSpeed fan_current_speed = percentToFanSpeed(fan_last_percent);
         // ...AND that value means a different speed...
         if (fan_current_speed != fan_last_speed) {
+            #if DEBUG
+            Serial.print("Fan speed changed to ");
+            Serial.println((uint8_t)fan_current_speed);
+            #endif
             fan_last_speed = fan_current_speed;
             // ... AND the fan is on.
             if (matter_fan.get_onoff()) {
@@ -226,12 +230,12 @@ void updateFanState()
         if (fan_current_state) {
         setFanSpeed(fan_last_speed);
         #if DEBUG
-        Serial.println("Fan ON");
+        Serial.println("Fan state changed to ON");
         #endif
         } else {
         setFanSpeed(FanSpeed::Off);
         #if DEBUG
-        Serial.println("Fan OFF");
+        Serial.println("Fan state changed to OFF");
         #endif
         }
     }
@@ -260,21 +264,33 @@ void setFanSpeed(FanSpeed speed)
   switch (speed)
   {
   case FanSpeed::Low:
+    #if DEBUG
+    Serial.println("Relays set for low speed");
+    #endif
     digitalWrite(kMediumSpeedPin, RELAY_INACTIVE);
     digitalWrite(kHighSpeedPin, RELAY_INACTIVE);
     digitalWrite(kLowSpeedPin, RELAY_ACTIVE);
     break;
   case FanSpeed::Medium:
+    #if DEBUG
+    Serial.println("Relays set for medium speed");
+    #endif
     digitalWrite(kLowSpeedPin, RELAY_INACTIVE);
     digitalWrite(kHighSpeedPin, RELAY_INACTIVE);
     digitalWrite(kMediumSpeedPin, RELAY_ACTIVE);
     break;
   case FanSpeed::High:
+    #if DEBUG
+    Serial.println("Relays set for high speed");
+    #endif
     digitalWrite(kLowSpeedPin, RELAY_INACTIVE);
     digitalWrite(kMediumSpeedPin, RELAY_INACTIVE);
     digitalWrite(kHighSpeedPin, RELAY_ACTIVE);
   case FanSpeed::Off:
   default:
+    #if DEBUG
+    Serial.println("Relays turned off");
+    #endif
     digitalWrite(kLowSpeedPin, RELAY_INACTIVE);
     digitalWrite(kMediumSpeedPin, RELAY_INACTIVE);
     digitalWrite(kHighSpeedPin, RELAY_INACTIVE);
