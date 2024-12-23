@@ -84,6 +84,11 @@ void DeviceFanCustom::SetFanMode(uint8_t fan_mode)
 
   // Adjust the percentage to the selected mode
   switch ((fan_mode_t)fan_mode) {
+    // Matter Application Clusters 4.4.6.1.1
+    case fan_mode_t::Off:
+      this->SetPercentSetting(0);
+      break;
+    
     case fan_mode_t::Low:
       this->SetPercentSetting(20);
       break;
