@@ -69,6 +69,26 @@ void DeviceFanCustom::SetPercentCurrent(uint8_t percent)
 
 void DeviceFanCustom::SetFanMode(uint8_t fan_mode)
 {
+  if ((fan_mode_t)fan_mode == fan_mode_t::On) {
+    // Matter Application Clusters 4.4.6.1.3 On Value
+    fan_mode = (uint8_t)fan_mode_t::High;
+  } else if ((fan_mode_t)fan_mode == fan_mode_t::Smart)
+  {
+    // Matter Application Clusters 4.4.6.1.4 Smart Value
+    switch ((fan_mode_sequence_t)fan_mode_sequence)
+    {
+    case fan_mode_sequence_t::OffLowMedHighAuto:
+    case fan_mode_sequence_t::OffLowHighAuto:
+    case fan_mode_sequence_t::OffHighAuto:
+      fan_mode = (uint8_t)fan_mode_t::Auto;
+      break;
+
+    default:
+      fan_mode = (uint8_t)fan_mode_t::High;
+      break;
+    }
+  }
+  
   bool changed = this->current_fan_mode != fan_mode;
   ChipLogProgress(DeviceLayer, "FanDevice[%s]: new mode='%d'", this->device_name, fan_mode);
   this->current_fan_mode = (fan_mode_t)fan_mode;
