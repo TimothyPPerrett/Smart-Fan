@@ -29,7 +29,7 @@
 
 #include <stdint.h>
 #include <Matter.h>
-#include <MatterFan.h>
+#include "MatterFanCustom.h"
 
 /// @brief Enum representing fan speed settings.
 enum class FanState
@@ -73,13 +73,11 @@ const uint8_t kMediumButtonPin = A7;
 const uint8_t kHighButtonPin = A8;
 #endif
 
-/// @brief Percentage the fan's hardware is set to.
-volatile uint8_t fan_hardware_percent = 0;
 /// @brief FanState the fan's hardware is set to.
 volatile FanState fan_hardware_state = FanState::Off;
 
 /// @brief Object exposed to Matter. Tracks software state of the fan.
-MatterFan matter_fan;
+MatterFanCustom matter_fan;
 
 // Forward declarations
 void updateFanState();
@@ -202,166 +200,12 @@ void loop()
 /// @brief Synchronise the physical fan's on/off state with that of the Matter fan
 void updateFanState()
 {
-    bool matter_fan_state = matter_fan.get_onoff();
-    uint8_t matter_fan_percent = matter_fan.get_percent();
-    FanState matter_fan_speed_state;
+    FanState matter_fan_mode = (FanState)matter_fan.get_mode();
 
-    if (matter_fan_percent != fan_hardware_percent) {
-      #if DEBUG
-      Serial.print("Matter fan percent changed from ");
-      Serial.print(fan_hardware_percent);
-      Serial.print("% to ");
-      Serial.print(matter_fan_percent);
-      Serial.println("%");
-      #endif
-      matter_fan_speed_state = percentToFanState(matter_fan_percent);
-      if (matter_fan_speed_state == fan_hardware_state)
-      {
-        fan_hardware_percent = matter_fan_percent;
-      }
+    if (matter_fan_mode != fan_hardware_state) {
+      setFanSpeed(matter_fan_mode);
+      fan_hardware_state = matter_fan_mode;
     }
-    else
-    {
-      matter_fan_speed_state = fan_hardware_state;
-    }
-
-    
-    if (matter_fan_speed_state != fan_hardware_state | (matter_fan_state != (fan_hardware_state != FanState::Off))) {
-      #if DEBUG
-      Serial.println("Matter fan state change!");
-      
-      Serial.print("Hardware fan state: ");
-      Serial.println(fanStateToString(fan_hardware_state));
-
-      Serial.print("Hardware fan percent: ");
-      Serial.print(fan_hardware_percent);
-      Serial.println("%");
-
-      Serial.print("Matter fan On/Off: ");
-      Serial.println((matter_fan_state) ? "On" : "Off");
-
-      Serial.print("Matter fan percent: ");
-      Serial.print(matter_fan_percent);
-      Serial.print("% (");
-      Serial.print(fanStateToString(matter_fan_speed_state));
-      Serial.println(")");
-      
-      #endif
-    } 
-    else
-    {
-      // No changes.
-      return;
-    }
-    
-
-    // Special cases, turning off the fan when it's on, and on when it's off
-    if (matter_fan_state)
-    {
-      if (fan_hardware_state == FanState::Off && matter_fan_speed_state == FanState::Off)
-      {
-        setHardwareState(FanState::On);
-        return;
-      }
-    } else
-    {
-      if (fan_hardware_state != FanState::Off) {
-        setHardwareState(FanState::Off);
-        return;
-      }
-    }
-
-    setHardwareState(matter_fan_speed_state);
-    fan_hardware_percent = matter_fan.get_percent();
-}
-
-void setHardwareState(FanState state, bool override_percent)
-{
-  // Act only if we're changing the hardware state.
-  if (state != fan_hardware_state)
-  {
-    switch (state)
-    {
-    case FanState::Off:
-      matter_fan.set_percent(0);
-      matter_fan.set_onoff(false);
-      setFanSpeed(FanState::Off);
-      break;
-    case FanState::Low:
-      matter_fan.set_onoff(true);
-      if (override_percent) {
-        matter_fan.set_percent(kLowSpeed);
-      }
-      setFanSpeed(FanState::Low);
-      break;
-    case FanState::Med:
-      matter_fan.set_onoff(true);
-      if (override_percent) {
-        matter_fan.set_percent(kMediumSpeed);
-      }
-      setFanSpeed(FanState::Med);
-      break;
-    case FanState::High:
-      matter_fan.set_onoff(true);
-      if (override_percent) {
-        matter_fan.set_percent(kHighSpeed);
-      }
-      setFanSpeed(FanState::High);
-      break;
-    case FanState::On:
-      // Specification states to set to HIGH
-      #if DEBUG
-      Serial.println("Fan state is being set to On. Setting to High.");
-      #endif
-      setHardwareState(FanState::High, true);
-      return;
-    case FanState::Auto:
-      // Not implementing
-      #if DEBUG
-      Serial.println("Setting fan state to Auto is not supported.");
-      #endif
-      return;
-    case FanState::Smart:
-      // Auto is not implemented,
-      // so specification says to set to HIGH
-      #if DEBUG
-      Serial.println("Fan state is being set to Smart. Setting to High.");
-      #endif
-      setHardwareState(FanState::High, true);
-      return;
-    default:
-      #if DEBUG
-      Serial.print("Tried to set fan state to ");
-      Serial.println(fanStateToString(state));
-      #endif
-      return;
-    }
-    
-    #if DEBUG
-    Serial.print("Fan state changed from ");
-    Serial.print(fanStateToString(fan_hardware_state));
-    Serial.print(" to ");
-    Serial.println(fanStateToString(state));
-    #endif
-    fan_hardware_state = state;
-  }
-}
-
-/// @brief Converts a percentage to a FanState
-/// @param percent A value in the inclusive range 0-100
-/// @return A FanState corresponding to percent, from FanState::Low to FanState::High
-FanState percentToFanState(uint8_t percent)
-{
-    if (percent == 0) {
-        return FanState::Off;
-    } else if (percent <= 33) {
-        return FanState::Low;
-    } else if (percent > 66) {
-        return FanState::High;
-    } else {
-        return FanState::Med;
-    }
-    
 }
 
 /// @brief Set the relays to obtain the desired fan speed.

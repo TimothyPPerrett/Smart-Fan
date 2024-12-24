@@ -216,3 +216,16 @@ void MatterFanCustom::operator=(uint8_t percent)
 {
   this->set_percent(percent);
 }
+
+/***************************************************************************//**
+ * Gets the fan's current mode
+ *
+ * @return the fan's current mode
+ ******************************************************************************/
+uint8_t MatterFanCustom::get_mode()
+{
+  if (!this->initialized) {
+    return 0;
+  }
+  return this->fan_device->GetFanMode();
+}

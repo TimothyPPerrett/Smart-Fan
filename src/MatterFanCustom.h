@@ -46,6 +46,7 @@ public:
   void operator=(uint8_t percent);
   static EmberAfAttributeMetadata fanControlAttrs[9];
   static EmberAfCluster fanControlEndpointClusters[3];
+  uint8_t get_mode();
 
 private:
   DeviceFanCustom* fan_device;
