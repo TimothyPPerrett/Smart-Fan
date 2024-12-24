@@ -28,7 +28,7 @@
 #define MATTER_FAN_CUSTOM_H
 
 #include <MatterFan.h>
-#include "devices/DeviceFanCustom.h"
+#include "DeviceFanCustom.h"
 
 using namespace chip;
 using namespace ::chip::DeviceLayer;
