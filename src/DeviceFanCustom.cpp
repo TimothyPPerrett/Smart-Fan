@@ -112,7 +112,7 @@ void DeviceFanCustom::SetFanMode(uint8_t fan_mode, bool set_percent)
     CallDeviceChangeCallback();
   }
 
-  if (!changed || set_percent) {
+  if (!changed || !set_percent) {
     return;
   }
 
