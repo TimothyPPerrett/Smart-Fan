@@ -45,7 +45,7 @@ public:
   uint8_t GetPercentCurrent();
   void SetPercentCurrent(uint8_t percent);
 
-  void SetFanMode(uint8_t fan_mode);
+  void SetFanMode(uint8_t fan_mode, bool set_percent = true);
   uint8_t GetFanMode();
   uint8_t GetFanModeSequence();
   uint8_t GetFanSpeedMax();
@@ -71,7 +71,17 @@ public:
     Smart
   };
 
-private:
+  enum fan_mode_sequence_t
+  {
+    OffLowMedHigh,
+    OffLowHigh,
+    OffLowMedHighAuto,
+    OffLowHighAuto,
+    OffHighAuto,
+    OffHigh,
+  };
+
+  private:
   void HandleFanDeviceStatusChanged(Changed_t itemChangedMask);
 
   uint8_t current_percent;
@@ -81,4 +91,7 @@ private:
   static const uint8_t fan_speed_max            = 100u; // 0-100%
   static const uint32_t fan_cluster_feature_map = 1u;   // 1-100 speeds supported
   static const uint16_t fan_cluster_revision    = 1u;
+
+  static const uint8_t max_low_speed = 33u;
+  static const uint8_t max_med_speed = 66u;
 };

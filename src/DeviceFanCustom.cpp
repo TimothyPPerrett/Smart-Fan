@@ -55,6 +55,20 @@ void DeviceFanCustom::SetPercentSetting(uint8_t percent)
     this->HandleFanDeviceStatusChanged(kChanged_PercentCurrent);
     CallDeviceChangeCallback();
   }
+
+  if (!changed) {
+    return;
+  }
+
+  if (percent > max_med_speed) {
+    this->SetFanMode((uint8_t)fan_mode_t::High, false);
+  } else if (percent > max_low_speed) {
+    this->SetFanMode((uint8_t)fan_mode_t::Med, false);
+  } else if (percent > 0) {
+    this->SetFanMode((uint8_t)fan_mode_t::Low, false);
+  } else {
+    this->SetFanMode((uint8_t)fan_mode_t::Off, false);
+  }
 }
 
 uint8_t DeviceFanCustom::GetPercentCurrent()
@@ -67,7 +81,7 @@ void DeviceFanCustom::SetPercentCurrent(uint8_t percent)
   (void)percent;
 }
 
-void DeviceFanCustom::SetFanMode(uint8_t fan_mode)
+void DeviceFanCustom::SetFanMode(uint8_t fan_mode, bool set_percent)
 {
   if ((fan_mode_t)fan_mode == fan_mode_t::On) {
     // Matter Application Clusters 4.4.6.1.3 On Value
@@ -98,7 +112,7 @@ void DeviceFanCustom::SetFanMode(uint8_t fan_mode)
     CallDeviceChangeCallback();
   }
 
-  if (!changed) {
+  if (!changed || set_percent) {
     return;
   }
 
