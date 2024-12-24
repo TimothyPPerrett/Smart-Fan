@@ -34,7 +34,7 @@ using namespace ::chip::app::Clusters;
 const EmberAfDeviceType gFanDeviceTypes[] = { { DEVICE_TYPE_FAN, DEVICE_VERSION_DEFAULT } };
 
 // Fan control cluster attributes
-DECLARE_DYNAMIC_ATTRIBUTE_LIST_BEGIN(fanControlAttrs)
+DECLARE_DYNAMIC_ATTRIBUTE_LIST_BEGIN(MatterFanCustom::fanControlAttrs)
 DECLARE_DYNAMIC_ATTRIBUTE(FanControl::Attributes::FanMode::Id, INT8U, 1, ATTRIBUTE_MASK_WRITABLE),            /* FanMode */
 DECLARE_DYNAMIC_ATTRIBUTE(FanControl::Attributes::FanModeSequence::Id, INT8U, 1, 0),                          /* FanModeSequence */
 DECLARE_DYNAMIC_ATTRIBUTE(FanControl::Attributes::PercentSetting::Id, INT8U, 1, ATTRIBUTE_MASK_WRITABLE),     /* PercentSetting */
@@ -46,7 +46,7 @@ DECLARE_DYNAMIC_ATTRIBUTE(FanControl::Attributes::FeatureMap::Id, BITMAP32, 4, 0
 DECLARE_DYNAMIC_ATTRIBUTE_LIST_END();                                                                         /* ClusterRevision auto added by LIST_END */
 
 // Fan control endpoint cluster list
-DECLARE_DYNAMIC_CLUSTER_LIST_BEGIN(fanControlEndpointClusters)
+DECLARE_DYNAMIC_CLUSTER_LIST_BEGIN(MatterFanCustom::fanControlEndpointClusters)
 DECLARE_DYNAMIC_CLUSTER(FanControl::Id, fanControlAttrs, nullptr, nullptr),
 DECLARE_DYNAMIC_CLUSTER(Descriptor::Id, descriptorAttrs, nullptr, nullptr),
 DECLARE_DYNAMIC_CLUSTER(BridgedDeviceBasicInformation::Id, bridgedDeviceBasicAttrs, nullptr, nullptr)
