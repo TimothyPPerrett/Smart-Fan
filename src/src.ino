@@ -140,7 +140,11 @@ void setup()
   Matter.begin();
   matter_fan.begin();
 
-  #if DEBUG | DEBUG_MATTER
+  matter_fan.set_device_name("Matter Fan");
+  matter_fan.set_vendor_name("Homemaker/Sparkfun");
+  matter_fan.set_product_name("HMAWP-4097/Thing Plus Matter");
+  matter_fan.set_serial_number(getDeviceUniqueIdStr().c_str());
+
   Serial.println("Matter fan");
 
   if (!Matter.isDeviceCommissioned()) {
@@ -173,7 +177,7 @@ void setup()
   #endif
 
   #if BUTTONS
-  // Re-enable interrupts now Matter is set up
+  // Re-enable interrupts now everything is set up
   interrupts();
   #endif
 }
