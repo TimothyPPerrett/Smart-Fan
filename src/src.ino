@@ -1,8 +1,11 @@
 /*
-   Adapted from matter_fan.ino (https://github.com/SiliconLabs/arduino/blob/main/libraries/Matter/examples/matter_fan/matter_fan.ino)
-   Original Author: Tamas Jozsi (Silicon Labs)
+  Incorporates elements of: 
+    matter_fan.ino (https://github.com/SiliconLabs/arduino/blob/main/libraries/Matter/examples/matter_fan/matter_fan.ino)
+    matter_lightbulb_custom_name.ino (https://github.com/SiliconLabs/arduino/blob/main/libraries/Matter/examples/matter_lightbulb_custom_name/matter_lightbulb_custom_name.ino)
+    matter_lightbulb_callback.ino (https://github.com/SiliconLabs/arduino/blob/main/libraries/Matter/examples/matter_lightbulb_callback/matter_lightbulb_callback.ino)
+   By Tamas Jozsi (Silicon Labs)
 
-   Modified By: Timothy Perrett
+  Author: Timothy Perrett
  */
 
 // If defined, debug messages are printed to Serial
