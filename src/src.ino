@@ -145,6 +145,7 @@ void setup()
   matter_fan.set_product_name("HMAWP-4097/Thing Plus Matter");
   matter_fan.set_serial_number(getDeviceUniqueIdStr().c_str());
 
+  #if DEBUG | DEBUG_MATTER
   Serial.println("Matter fan");
 
   if (!Matter.isDeviceCommissioned()) {
