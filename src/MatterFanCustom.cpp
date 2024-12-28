@@ -1,9 +1,11 @@
 /*
- * This file is part of the Silicon Labs Arduino Core
+ * This file has been modified from MatterFan.cpp, 
+ * a part of the Silicon Labs Arduino Core
  *
  * The MIT License (MIT)
  *
  * Copyright 2024 Silicon Laboratories Inc. www.silabs.com
+ * Copyright 2024 Timothy Perrett
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
