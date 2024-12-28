@@ -17,9 +17,6 @@
 // If defined, button inputs and interrupts are used
 // #define BUTTONS 1
 
-// If defined, the Matter fan is polled at the specified interval
-// #define SMART_FAN_POLLING 1
-
 // Configuration option for active low/high relays.
 #define RELAY_ACTIVE LOW
 #if RELAY_ACTIVE == LOW
@@ -82,10 +79,14 @@ volatile FanState fan_hardware_state = FanState::Off;
 /// @brief Object exposed to Matter. Tracks software state of the fan.
 MatterFanCustom matter_fan;
 
+StaticSemaphore_t matter_device_event_semaphore_buf;
+SemaphoreHandle_t matter_device_event_semaphore;
+
 // Forward declarations
 void updateFanState();
 void setFanSpeed(FanState speed);
 String fanStateToString(FanState state);
+void matterFanChangeCallback();
 
 void setup()
 {
@@ -128,6 +129,9 @@ void setup()
   noInterrupts();
   #endif
 
+  // Create a binary semaphore
+  matter_device_event_semaphore = xSemaphoreCreateBinaryStatic(&matter_device_event_semaphore_buf);
+
   // Matter setup
 
   Serial.begin(115200);
@@ -138,6 +142,8 @@ void setup()
   matter_fan.set_vendor_name("Homemaker/Sparkfun");
   matter_fan.set_product_name("HMAWP-4097/Thing Plus Matter");
   matter_fan.set_serial_number(getDeviceUniqueIdStr().c_str());
+
+  matter_fan.set_device_change_callback(matterFanChangeCallback);
 
   #if DEBUG | DEBUG_MATTER
   Serial.println("Matter fan");
@@ -179,21 +185,12 @@ void setup()
 
 void loop()
 {
-  #if SMART_FAN_POLLING
-  // Enforce polling interval.
-  // TODO: Will the underflow that happens every ~50 days break anything?
-  static unsigned long time = 0UL;
-  if (millis() >= time + kPollingInterval) {
+  xSemaphoreTake(matter_device_event_semaphore, portMAX_DELAY);
+  #if DEBUG
+  Serial.println("Semaphore taken. Updating fan mode.");
   #endif
-  
-  // TODO: Any need to disable interrupts while we perform these updates?
-  // If so, should that be done here or in the functions themselves?
-  updateFanState();
 
-  #if SMART_FAN_POLLING
-  }
-  time = millis();
-  #endif
+  updateFanState();
 }
 
 /// @brief Synchronise the physical fan's on/off state with that of the Matter fan
@@ -272,32 +269,33 @@ String fanStateToString(FanState state)
   }
 }
 
+void matterFanChangeCallback()
+{
+  #if DEBUG
+  Serial.println("Matter change callback triggered.");
+  #endif
+  xSemaphoreGive(matter_device_event_semaphore);
+}
+
 #if BUTTONS
-// These interrupts all set the state of
-// the Matter fan, then call updateFanSpeed
-// to propagate that state to the hardware.
+// These interrupts all set the percent setting of
+// the Matter fan. This should trip the fan change
+// callback
 
 void offInterrupt()
 {
     #if DEBUG
     Serial.println("Off button interrupt triggered.");
     #endif
-    noInterrupts();
-    matter_fan.set_onoff(false);
-    updateFanState();
-    interrupts();
+    matter_fan.set_percent(0);
 }
 
 void lowSpeedInterrupt()
 {
     #if DEBUG
-    Serial.println("Off button interrupt triggered.");
+    Serial.println("Low speed button interrupt triggered.");
     #endif
-    noInterrupts();
-    matter_fan.set_onoff(true);
     matter_fan.set_percent(kLowSpeed);
-    updateFanSpeed();
-    interrupts();
 }
 
 void mediumSpeedInterrupt()
@@ -305,11 +303,7 @@ void mediumSpeedInterrupt()
     #if DEBUG
     Serial.println("Medium speed button interrupt triggered.");
     #endif
-    noInterrupts();
-    matter_fan.set_onoff(true);
     matter_fan.set_percent(kMediumSpeed);
-    updateFanSpeed();
-    interrupts();
 }
 
 void highSpeedInterrupt()
@@ -317,10 +311,6 @@ void highSpeedInterrupt()
     #if DEBUG
     Serial.println("High speed button interrupt triggered.");
     #endif
-    noInterrupts();
-    matter_fan.set_onoff(true);
     matter_fan.set_percent(kHighSpeed);
-    updateFanSpeed();
-    interrupts();
 }
 #endif
