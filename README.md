@@ -1,10 +1,10 @@
 # Smart Fan
-This repository covers my personal project to convert the Homemaker HMAWP-4097 pedestal fan I've been using into a Matter-enabled smart fan.
+This repository covers my personal project to convert the Homemaker HMAWP-4097 pedestal fan I've been using into a Matter-enabled smart fan using the SparkFun Thing Plus Matter.
 
 ## Methodology
 ### Software
 #### Classes
-The fan uses modified a modified version of [the official Arduino Matter library](https://github.com/SiliconLabs/arduino/tree/main/libraries/Matter) in the form of the `MatterFanCustom` and `DeviceFanCustom` classes.
+The fan uses a modified version of the [official Arduino Matter library](https://github.com/SiliconLabs/arduino/tree/main/libraries/Matter) in the form of the `MatterFanCustom` and `DeviceFanCustom` classes.
 
 ##### MatterFanCustom Class
 The `MatterFan` class from the official library is mostly unaltered, except for its use of `DeviceFanCustom` and the addition of the `get_mode` method.
