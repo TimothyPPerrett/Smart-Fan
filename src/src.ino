@@ -81,8 +81,6 @@ MatterFanCustom matter_fan;
 
 // Forward declarations
 void updateFanState();
-void setHardwareState(FanState state, bool override_percent = false);
-FanState percentToFanState(uint8_t percent);
 void setFanSpeed(FanState speed);
 String fanStateToString(FanState state);
 
