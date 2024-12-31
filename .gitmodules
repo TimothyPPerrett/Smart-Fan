@@ -1,0 +1,3 @@
+[submodule "silabs-arduino"]
+	path = lib/silabs
+	url = https://github.com/arduino/ArduinoCore-API
