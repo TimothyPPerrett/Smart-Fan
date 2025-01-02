@@ -43,11 +43,6 @@ enum class FanState
     Smart
 };
 
-#if SMART_FAN_POLLING
-/// @brief Interval in milliseconds at which the matter fan is polled.
-const unsigned long kPollingInterval = 100UL;
-#endif
-
 /// @brief Pin the low speed relay is connected to.
 const uint8_t kLowSpeedPin = D6; // Marked C1 on board
 /// @brief Pin the medium speed relay is connected to.
