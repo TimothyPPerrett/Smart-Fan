@@ -60,7 +60,7 @@ const uint8_t kHighSpeed = 100;
 
 #if BUTTONS
 /// @brief Pin the off button is connected to. C5 on the board.
-const uint8_t kOffButtonPin = A8;
+const uint8_t kOffButtonPin = PIN_A8;
 /// @brief Pin the low speed button is connected to. C8 on the board.
 const uint8_t kLowButtonPin = D0;
 /// @brief Pin the medium speed button is connected to. C0 on the board.
