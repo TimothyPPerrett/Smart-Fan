@@ -163,7 +163,7 @@ void setup()
   noInterrupts();
   #endif
 
-  analogReference(AR_INTERNAL1V2);
+  analogReference(AR_CHOICE);
 
   // Create a binary semaphore
   matter_device_event_semaphore = xSemaphoreCreateBinaryStatic(&matter_device_event_semaphore_buf);
