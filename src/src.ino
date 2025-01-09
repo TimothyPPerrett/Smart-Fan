@@ -235,55 +235,39 @@ void loop()
 {
   unsigned long currentTime = millis();
   unsigned long elapsedTime = currentTime - previousTime;
-  
+
+  // Set the timeout on xSemaphoreTake such that it's equal to the time
+  // remaining on the temp sensor polling interval.
+  // If the semaphore is obtained, we know that the interval hadn't elapsed,
+  // while if it isn't and we time out, we know that it's time to poll the
+  // sensors.
+  TickType_t xTempSensorTicksToWait;
   if (elapsedTime >= kTempSensorInterval)
   {
-    // Temp sensor polling interval has already expired.
-    #if DEBUG
-    Serial.println("Temp sensor interval elapsed in loop");
-    #endif
-    
-    // xBlockTime of 0, then immediately poll the sensor
-    if (xSemaphoreTake(matter_device_event_semaphore, 0)  == pdTRUE)
-    {
-      #if DEBUG
-      Serial.println("Semaphore taken. Updating fan mode.");
-      #endif
-      updateFanState();
-    }
-
-    updateTempSensor();
-    updateCpuTempSensor();
-    previousTime = millis();
+    xTempSensorTicksToWait = 0u;
   }
   else
   {
-    // Temp sensor polling interval is yet to expire.
+    xTempSensorTicksToWait = pdMS_TO_TICKS(kTempSensorInterval - elapsedTime);
+  }
 
+  bool semaphoreObtained = xSemaphoreTake(matter_device_event_semaphore, xTempSensorTicksToWait) == pdTRUE;
+
+  if (semaphoreObtained)
+  {
     #if DEBUG
-    Serial.println("Temp sensor interval not yet elapsed");
+    Serial.println("Semaphore taken. Updating fan mode.");
     #endif
-
-    // xBlockTime equal to the remaining time in the interval
-    TickType_t xTempSensorTicksToWait = pdMS_TO_TICKS(kTempSensorInterval - elapsedTime);
-    if (xSemaphoreTake(matter_device_event_semaphore, xTempSensorTicksToWait) == pdTRUE)
-    {
-      // Semaphore taken means we've resumed before the interval expired
-      #if DEBUG
-      Serial.println("Semaphore taken. Updating fan mode.");
-      #endif
-      updateFanState();
-    }
-    else
-    {
-      // Semaphore not taken means the interval has expired
-      #if DEBUG
-      Serial.println("Temp sensor interval elapsed while awaiting semaphore.");
-      #endif
-      updateTempSensor();
-      updateCpuTempSensor();
-      previousTime = millis();
-    }
+    updateFanState();
+  }
+  else if (xTempSensorTicksToWait == 0u || !semaphoreObtained)
+  {
+    #if DEBUG
+    Serial.println("Temp sensor interval elapsed. Measuring temperature.");
+    #endif
+    updateTempSensor();
+    updateCpuTempSensor();
+    previousTime = millis();
   }
 }
 
