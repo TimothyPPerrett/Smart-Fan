@@ -15,7 +15,7 @@
 #define DEBUG_MATTER 1
 
 // If defined, button inputs and interrupts are used
-// #define BUTTONS 1
+#define BUTTONS 1
 
 // Configuration option for active low/high relays.
 #define RELAY_ACTIVE LOW
@@ -59,14 +59,14 @@ const uint8_t kMediumSpeed = 50;
 const uint8_t kHighSpeed = 100;
 
 #if BUTTONS
-/// @brief Pin the off button is connected to. C5 on the board.
-const uint8_t kOffButtonPin = PIN_A8;
-/// @brief Pin the low speed button is connected to. C8 on the board.
+/// @brief Pin the off button is connected to. C4 on the board.
+const uint8_t kOffButtonPin = A7;
+/// @brief Pin the low speed button is connected to. C7 on the board.
 const uint8_t kLowButtonPin = D0;
 /// @brief Pin the medium speed button is connected to. C0 on the board.
 const uint8_t kMediumButtonPin = D7;
-/// @brief Pin the high speed button is connected to. D2 on the board.
-const uint8_t kHighButtonPin = D10;
+/// @brief Pin the high speed button is connected to. A4 on the board.
+const uint8_t kHighButtonPin = A6;
 #endif
 
 /// @brief Pin the temp sensor is connected to. A0 on the board.
@@ -106,9 +106,16 @@ const int16_t kTempSensorTemp1V2 = kTempSensorCalibrated + (kARVoltage - kTempSe
 /// @brief FanState the fan's hardware is set to.
 volatile FanState fan_hardware_state = FanState::Off;
 
+/// @brief Indicates if a button has been pressed in the last cycle.
+volatile bool button_pressed = false;
+/// @brief Indicates the state requested by the last button press.
+volatile FanState button_fan_state = FanState::Off;
+
 /// @brief Object exposed to Matter. Tracks software state of the fan.
 MatterFanCustom matter_fan;
+/// @brief Object exposed to Matter. Tracks room temperature.
 MatterTemperature matter_temp_sensor;
+/// @brief Object exposed to Matter. Tracks CPU temperature.
 MatterTemperature matter_cpu_temp_sensor;
 
 StaticSemaphore_t matter_device_event_semaphore_buf;
@@ -143,6 +150,9 @@ void setup()
   pinMode(kHighSpeedPin, OUTPUT);
 
   setFanSpeed(FanState::Off);
+  #if DEBUG
+  Serial.println("Set up output pins");
+  #endif
 
   #if BUTTONS
   // INPUT_PULLUP so we can reuse the existing buttons directly
@@ -150,7 +160,17 @@ void setup()
   pinMode(kLowButtonPin, INPUT_PULLUP);
   pinMode(kMediumButtonPin, INPUT_PULLUP);
   pinMode(kHighButtonPin, INPUT_PULLUP);
+  #if DEBUG
+  Serial.println("Set up input pins");
+  #endif // DEBUG
+  #endif // BUTTONS
 
+  analogReference(AR_CHOICE);
+
+  // Create a binary semaphore
+  matter_device_event_semaphore = xSemaphoreCreateBinaryStatic(&matter_device_event_semaphore_buf);
+
+  #if BUTTONS
   // Mechanical fan state will only change when a setting has actually changed,
   // so it's no problem for these to be triggered multiple times in a row, and 
   // we don't really need debouncing.
@@ -158,15 +178,10 @@ void setup()
   attachInterrupt(digitalPinToInterrupt(kLowButtonPin), lowSpeedInterrupt, FALLING);
   attachInterrupt(digitalPinToInterrupt(kMediumButtonPin), mediumSpeedInterrupt, FALLING);
   attachInterrupt(digitalPinToInterrupt(kHighButtonPin), highSpeedInterrupt, FALLING);
-
-  // Disable interrupts while we set up Matter
-  noInterrupts();
-  #endif
-
-  analogReference(AR_CHOICE);
-
-  // Create a binary semaphore
-  matter_device_event_semaphore = xSemaphoreCreateBinaryStatic(&matter_device_event_semaphore_buf);
+  #if DEBUG
+  Serial.println("Set up input pin interrupts");
+  #endif // DEBUG
+  #endif // BUTTONS
 
   // Matter setup
 
@@ -193,8 +208,8 @@ void setup()
 
   matter_fan.set_device_change_callback(matterFanChangeCallback);
 
-  #if DEBUG | DEBUG_MATTER
-  Serial.println("Matter fan and temperature sensor");
+  #if DEBUG
+  Serial.println("Setting up Matter fan and temperature sensor");
 
   if (!Matter.isDeviceCommissioned()) {
     Serial.println("Matter device is not commissioned");
@@ -225,10 +240,12 @@ void setup()
   Serial.println("Matter device is now online");
   #endif
 
-  #if BUTTONS
-  // Re-enable interrupts now everything is set up
-  interrupts();
-  #endif
+  if (button_pressed)
+  {
+    // Button was pressed while waiting for the device
+    // to come online. Set the Matter fan's state accordingly
+    matter_fan.set_mode((uint8_t)fan_hardware_state);
+  }
 }
 
 void loop()
@@ -252,13 +269,27 @@ void loop()
   }
 
   bool semaphoreObtained = xSemaphoreTake(matter_device_event_semaphore, xTempSensorTicksToWait) == pdTRUE;
+  #if DEBUG
+  Serial.println("xSemaphoreTake just finished blocking");
+  #endif // DEBUG
 
   if (semaphoreObtained)
   {
-    #if DEBUG
-    Serial.println("Semaphore taken. Updating fan mode.");
-    #endif
-    updateFanState();
+    if (button_pressed)
+    {
+      #if DEBUG
+      Serial.println("Semaphore taken from button press. Updating matter fan mode.");
+      #endif
+      matter_fan.set_mode((uint8_t)button_fan_state);
+      button_pressed = false;
+    }
+    else
+    {
+      #if DEBUG
+      Serial.println("Semaphore taken from Matter change. Updating hardware fan mode.");
+      #endif
+      updateFanState();
+    }
   }
   else if (xTempSensorTicksToWait == 0u || !semaphoreObtained)
   {
@@ -368,7 +399,7 @@ float readTempSensorRaw()
   // then maps to temperatures from -50 to 280.
 
   int rawInput = analogRead(kTempSensorPin);
-  #if DEBUG
+  #if DEBUG >= 2
   Serial.print("Raw temp input: ");
   Serial.println(rawInput);
   #endif
@@ -406,39 +437,65 @@ void updateCpuTempSensor()
 }
 
 #if BUTTONS
-// These interrupts all set the percent setting of
-// the Matter fan. This should trip the fan change
-// callback
+
+
+void buttonInterrupt(FanState state)
+{
+  // Set variables for Matter to pick up
+  button_pressed = true;
+  button_fan_state = state;
+
+  // Set state directly so this works fine even without Matter
+  if (state != fan_hardware_state)
+  {
+    setFanSpeed(state);
+    fan_hardware_state = state;
+    #if DEBUG
+    Serial.println("Button changed something.");
+    #endif
+  }
+  #if DEBUG >= 2
+  Serial.println("Button interrupt done.");
+  #endif
+}
 
 void offInterrupt()
 {
-    #if DEBUG
+    #if DEBUG >= 2
     Serial.println("Off button interrupt triggered.");
     #endif
-    matter_fan.set_percent(0);
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    xSemaphoreGiveFromISR(matter_device_event_semaphore, &xHigherPriorityTaskWoken);
+    buttonInterrupt(FanState::Off);
 }
 
 void lowSpeedInterrupt()
 {
-    #if DEBUG
+    #if DEBUG >= 2
     Serial.println("Low speed button interrupt triggered.");
     #endif
-    matter_fan.set_percent(kLowSpeed);
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    xSemaphoreGiveFromISR(matter_device_event_semaphore, &xHigherPriorityTaskWoken);
+    buttonInterrupt(FanState::Low);
 }
 
 void mediumSpeedInterrupt()
 {
-    #if DEBUG
+    #if DEBUG >= 2
     Serial.println("Medium speed button interrupt triggered.");
     #endif
-    matter_fan.set_percent(kMediumSpeed);
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    xSemaphoreGiveFromISR(matter_device_event_semaphore, &xHigherPriorityTaskWoken);
+    buttonInterrupt(FanState::Med);
 }
 
 void highSpeedInterrupt()
 {
-    #if DEBUG
+    #if DEBUG >= 2
     Serial.println("High speed button interrupt triggered.");
     #endif
-    matter_fan.set_percent(kHighSpeed);
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    xSemaphoreGiveFromISR(matter_device_event_semaphore, &xHigherPriorityTaskWoken);
+    buttonInterrupt(FanState::High);
 }
 #endif

@@ -1,2 +1,8 @@
 {
+    "files.associations": {
+        "memory": "cpp",
+        "istream": "cpp",
+        "sstream": "cpp",
+        "tuple": "cpp"
+    }
 }

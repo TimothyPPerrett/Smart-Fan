@@ -220,6 +220,21 @@ void MatterFanCustom::operator=(uint8_t percent)
 }
 
 /***************************************************************************//**
+ * Sets the fan's current mode
+ *
+ * @param[in] mode the requested fan speed mode
+ ******************************************************************************/
+void MatterFanCustom::set_mode(uint8_t mode)
+{
+  if (!this->initialized) {
+    return;
+  }
+  PlatformMgr().LockChipStack();
+  this->fan_device->SetFanMode(mode, true);
+  PlatformMgr().UnlockChipStack();
+}
+
+/***************************************************************************//**
  * Gets the fan's current mode
  *
  * @return the fan's current mode
