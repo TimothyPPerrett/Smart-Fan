@@ -17,6 +17,9 @@
 // If defined, button inputs and interrupts are used
 #define BUTTONS 1
 
+// If defined, we use the temperature sensor
+// #define TEMP_SENSOR 1
+
 // Configuration option for active low/high relays.
 #define RELAY_ACTIVE LOW
 #if RELAY_ACTIVE == LOW
@@ -91,7 +94,7 @@ const int16_t kARVoltage = 1200;
 const int16_t kARVoltage = 1250;
 #endif
 
-
+#if TEMP_SENSOR 
 /// @brief Temp sensor calibrated temp in degrees C
 const int16_t kTempSensorCalibrated = 25;
 /// @brief Temp sensor scale in mV/C
@@ -102,6 +105,7 @@ const int16_t kTempSensorVoltageCalibrated = 750;
 const int16_t kTempSensorTemp0V = kTempSensorCalibrated - kTempSensorVoltageCalibrated / kTempSensorVScale;
 /// @brief Temperature corresponding to a temp sensor reading of kARVoltage
 const int16_t kTempSensorTemp1V2 = kTempSensorCalibrated + (kARVoltage - kTempSensorVoltageCalibrated) / kTempSensorVScale;
+#endif
 
 /// @brief FanState the fan's hardware is set to.
 volatile FanState fan_hardware_state = FanState::Off;
@@ -113,8 +117,10 @@ volatile FanState button_fan_state = FanState::Off;
 
 /// @brief Object exposed to Matter. Tracks software state of the fan.
 MatterFanCustom matter_fan;
+#if TEMP_SENSOR
 /// @brief Object exposed to Matter. Tracks room temperature.
 MatterTemperature matter_temp_sensor;
+#endif
 /// @brief Object exposed to Matter. Tracks CPU temperature.
 MatterTemperature matter_cpu_temp_sensor;
 
@@ -125,7 +131,9 @@ SemaphoreHandle_t matter_device_event_semaphore;
 void updateFanState();
 void setFanSpeed(FanState speed);
 String fanStateToString(FanState state);
+#if TEMP_SENSOR
 void updateTempSensor();
+#endif
 void updateCpuTempSensor();
 void matterFanChangeCallback();
 
@@ -188,7 +196,9 @@ void setup()
   Serial.begin(115200);
   Matter.begin();
   matter_fan.begin();
+  #if TEMP_SENSOR
   matter_temp_sensor.begin();
+  #endif
   matter_cpu_temp_sensor.begin();
 
   matter_fan.set_device_name("Matter Fan");
@@ -196,10 +206,12 @@ void setup()
   matter_fan.set_product_name("HMAWP-4097/Thing Plus Matter");
   matter_fan.set_serial_number(getDeviceUniqueIdStr().c_str());
 
+  #if TEMP_SENSOR
   matter_temp_sensor.set_device_name("Room Temperature Sensor");
   matter_temp_sensor.set_vendor_name("Analog Instruments/Sparkfun");
   matter_temp_sensor.set_product_name("TMP36/Thing Plus Matter");
   matter_temp_sensor.set_serial_number(getDeviceUniqueIdStr().c_str());
+  #endif
 
   matter_cpu_temp_sensor.set_device_name("CPU Temperature Sensor");
   matter_cpu_temp_sensor.set_vendor_name("Sparkfun");
@@ -233,7 +245,8 @@ void setup()
 
   Serial.println("Waiting for Matter device discovery...");
   #endif
-  while (!matter_fan.is_online() | !matter_temp_sensor.is_online() | !matter_cpu_temp_sensor.is_online()) {
+  // TODO: elegant way of conditionally picking these
+  while (!matter_fan.is_online() | !matter_cpu_temp_sensor.is_online()) {
     delay(200);
   }
   #if DEBUG | DEBUG_MATTER
@@ -296,7 +309,9 @@ void loop()
     #if DEBUG
     Serial.println("Temp sensor interval elapsed. Measuring temperature.");
     #endif
+    #if TEMP_SENSOR
     updateTempSensor();
+    #endif
     updateCpuTempSensor();
     previousTime = millis();
   }
@@ -391,6 +406,7 @@ float mapfloat(long x, long in_min, long in_max, long out_min, long out_max)
   return (float)(x - in_min) * (out_max - out_min) / (float)(in_max - in_min) + out_min;
 }
 
+#if TEMP_SENSOR
 float readTempSensorRaw()
 {
   // TMP36 has a scale factor of 10mV/C
@@ -422,6 +438,7 @@ void updateTempSensor()
   Serial.println(" C");
   #endif
 }
+#endif // TEMP_SENSOR
 
 void updateCpuTempSensor()
 {
